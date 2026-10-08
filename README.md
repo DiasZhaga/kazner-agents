@@ -175,6 +175,9 @@ XIX B-DATE
 . O
 ```
 
+Runs on four other articles (city, organisation, historical event, missing article), what
+they revealed and what was fixed: [docs/real-runs.md](docs/real-runs.md).
+
 With `--llm fake` the same pipeline runs offline, but the labels come from a crude
 capitalisation heuristic that only exercises the pipeline; it is **not** real NER.
 
@@ -225,7 +228,7 @@ capitalisation heuristic that only exercises the pipeline; it is **not** real NE
 pytest
 ```
 
-60 tests, offline (FakeLLM, no network), about 2 seconds. Covered: message schema validation;
+65 tests, offline (FakeLLM, no network), about 2 seconds. Covered: message schema validation;
 span → IOB2 conversion and repair of invalid sequences; Kazakh sentence/word splitting;
 orchestrator step, time and LLM-call limits, loop protection, failure handling; LLM client retries
 with a fake that fails N times; the load report; CLI; generated docs being up to date.
