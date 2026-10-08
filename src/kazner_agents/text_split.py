@@ -15,18 +15,41 @@ HEADING_RE = re.compile(r"^=+.*=+$")  # '== Өмірбаяны ==' in Wikipedia 
 
 SENTENCE_ENDS = {".", "!", "?", "…"}
 CLOSERS = {"»", '"', "”", ")", "]"}
-OPENERS = {"«", '"', "“", "(", "—", "–", "-"}
+# A sentence may start with these. Not '(': after 'Алматы.” (құрастырылған ...' the text goes on.
+OPENERS = {"«", '"', "“", "—", "–", "-"}
+# Quotes and brackets that come in pairs; a '.' between a pair does not end the sentence
+# ('“Желтоқсан. 1986. Алматы.”', '(1991, реж. Т.Теменов)').
+PAIRS = {"«": "»", "“": "”", "(": ")", '"': '"'}
 # Abbreviations that are often followed by a capital letter or a number. Single letters
 # (initials 'А.', 'ж.' = жылы, 'ғ.' = ғасыр) are handled separately.
-ABBREVIATIONS = {"жж", "ғғ", "млн", "млрд", "мыс", "проф", "акад", "доц", "құр", "бет"}
+ABBREVIATIONS = {"жж", "ғғ", "млн", "млрд", "мыс", "проф", "акад", "доц", "құр", "бет", "реж"}
 
 
 def split_words(text: str) -> list[str]:
     return WORD_RE.findall(text)
 
 
-def _is_boundary(words: list[str], end_mark: int, last: int) -> bool:
+def inside_pairs(words: list[str]) -> list[bool]:
+    """inside[k] is True if words[k] lies between a matching pair of quotes or brackets.
+
+    An opening mark without its closing mark on the same line is ignored.
+    """
+    inside = [False] * len(words)
+    stack: list[int] = []  # positions of opening marks that are not closed yet
+    for k, word in enumerate(words):
+        if stack and word == PAIRS[words[stack[-1]]]:
+            opener = stack.pop()
+            for j in range(opener + 1, k):
+                inside[j] = True
+        elif word in PAIRS:
+            stack.append(k)
+    return inside
+
+
+def _is_boundary(words: list[str], end_mark: int, last: int, inside: list[bool]) -> bool:
     """Does the sentence end at words[last]? words[end_mark] is the '.', '!', '?' or '…'."""
+    if inside[last]:
+        return False  # still inside quotes or brackets
     if words[end_mark] == "." and end_mark > 0:
         previous = words[end_mark - 1]
         if len(previous) == 1 and previous.isalpha():
@@ -47,6 +70,7 @@ def split_sentences(text: str) -> list[list[str]]:
         if not line or HEADING_RE.match(line):
             continue
         words = split_words(line)
+        inside = inside_pairs(words)
         start = 0
         i = 0
         while i < len(words):
@@ -57,7 +81,7 @@ def split_sentences(text: str) -> list[list[str]]:
                     words[last + 1] in SENTENCE_ENDS or words[last + 1] in CLOSERS
                 ):
                     last += 1
-                if _is_boundary(words, i, last):
+                if _is_boundary(words, i, last, inside):
                     sentences.append(words[start : last + 1])
                     start = last + 1
                 i = last + 1

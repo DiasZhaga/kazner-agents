@@ -87,3 +87,22 @@ def test_normalizer_agent_handles_spans_and_labels(ctx):
 def test_every_agent_has_at_most_five_tools():
     assert len(ALL_SPECS) == 7
     assert all(len(spec.tools) <= 5 for spec in ALL_SPECS)
+
+
+def test_text_without_the_suffix_is_accepted_in_place():
+    words = ["Алматы", "Қазақстанның", "ең", "үлкен", "қаласы", "."]
+    labels, repairs = spans_to_iob2(words, [span(1, 1, "GPE", text="Қазақстан")])
+    assert labels[1] == "B-GPE" and repairs == []
+
+
+def test_exact_text_at_the_given_place_beats_a_suffixed_match():
+    words = ["Алматыда", "және", "Алматы", "маңында"]
+    labels, repairs = spans_to_iob2(words, [span(0, 0, "GPE", text="Алматы")])
+    assert labels[0] == "B-GPE" and repairs == []  # 'Алматыда' = 'Алматы' + suffix, in place
+    labels, repairs = spans_to_iob2(words, [span(1, 1, "GPE", text="Алматы")])
+    assert labels[2] == "B-GPE" and "moved" in repairs[0]  # exact match elsewhere wins
+
+
+def test_short_text_needs_an_exact_match():
+    labels, repairs = spans_to_iob2(["Ерлан", "келді"], [span(0, 0, "PERSON", text="Ер")])
+    assert labels == ["O", "O"] and "dropped" in repairs[0]

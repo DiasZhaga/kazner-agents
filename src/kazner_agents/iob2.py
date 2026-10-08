@@ -15,23 +15,48 @@ def _squash(text: str) -> str:
     return "".join(text.split()).lower()
 
 
-def locate_text(words: list[str], text: str, near: int) -> tuple[int, int] | None:
-    """Find the words whose concatenation equals `text`; prefer the match closest to `near`.
+# LLMs often write the dictionary form of the last word ('Қазақстан' for 'Қазақстанның').
+# A text that matches the words except for such an ending is accepted. Kazakh suffix chains
+# are rarely longer than 12 letters; very short texts (under 3 letters) must match exactly.
+MAX_SUFFIX = 12
 
+
+def _same_or_suffixed(joined: str, target: str) -> bool:
+    if joined == target:
+        return True
+    return (
+        len(target) >= 3
+        and joined.startswith(target)
+        and len(joined) - len(target) <= MAX_SUFFIX
+    )
+
+
+def text_matches(words: list[str], start: int, end: int, text: str) -> bool:
+    """Do words[start..end] spell `text` (allowing a suffix on the last word)?"""
+    return _same_or_suffixed(_squash("".join(words[start : end + 1])), _squash(text))
+
+
+def locate_text(words: list[str], text: str, near: int) -> tuple[int, int] | None:
+    """Find the words that spell `text`; prefer the match closest to `near`.
+
+    Exact matches win over matches that only differ by a suffix on the last word.
     Returns (start, end) word indices, inclusive, or None if the text is not in the sentence.
     """
     target = _squash(text)
     if not target:
         return None
-    matches = []
+    exact, suffixed = [], []
     for start in range(len(words)):
         joined = ""
         for end in range(start, len(words)):
             joined += _squash(words[end])
             if joined == target:
-                matches.append((start, end))
+                exact.append((start, end))
+            elif _same_or_suffixed(joined, target):
+                suffixed.append((start, end))
             if len(joined) >= len(target):
                 break
+    matches = exact or suffixed
     if not matches:
         return None
     return min(matches, key=lambda match: abs(match[0] - near))
@@ -48,21 +73,22 @@ def spans_to_iob2(words: list[str], spans: list[Span]) -> tuple[list[str], list[
     labels = ["O"] * n
     repairs: list[str] = []
     # Earlier spans first; for the same start the longer span first, so it wins an overlap.
-    ordered = sorted(spans, key=lambda s: (min(s.start_word, s.end_word), -abs(s.end_word - s.start_word)))
+    ordered = sorted(
+        spans, key=lambda s: (min(s.start_word, s.end_word), -abs(s.end_word - s.start_word))
+    )
     for span in ordered:
         start, end, etype = span.start_word, span.end_word, span.type
         name = f"{etype} span {start}-{end}"
         if start > end:
             start, end = end, start
             repairs.append(f"swapped start and end of {name}")
-        if span.text:
+        if span.text and not text_matches(words, start, end, span.text):
             found = locate_text(words, span.text, near=start)
             if found is None:
                 repairs.append(f"dropped {name}: its text {span.text!r} is not in the sentence")
                 continue
-            if found != (start, end):
-                repairs.append(f"moved {name} to {found[0]}-{found[1]} to match its text")
-                start, end = found
+            repairs.append(f"moved {name} to {found[0]}-{found[1]} to match its text")
+            start, end = found
         if start >= n:
             repairs.append(f"dropped {name}: outside the sentence of {n} words")
             continue

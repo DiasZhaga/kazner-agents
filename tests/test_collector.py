@@ -122,3 +122,17 @@ def test_fetch_article_error_kinds(monkeypatch):
         wikipedia.fetch_article("Жоқ", "kna-test")
     with pytest.raises(AgentError, match="no article"):
         wikipedia.fetch_article("Жоқ", "kna-test")
+
+
+def test_dots_inside_quotes_and_brackets_do_not_end_a_sentence():
+    text = (
+        "Шындық қалпына келтірілді, “Желтоқсан. 1986. Алматы.” (құрастырылған Т.Өтегенов), "
+        "“Аллажар” (1991, реж. Т.Теменов) кинофильмі түсірілді. Оқиғаға қатысқандар қуғындалды."
+    )
+    sentences = split_sentences(text)
+    assert len(sentences) == 2
+    assert sentences[1] == ["Оқиғаға", "қатысқандар", "қуғындалды", "."]
+
+
+def test_unclosed_bracket_does_not_block_splitting():
+    assert len(split_sentences("Ол (кейін келді. Біз күттік.")) == 2
