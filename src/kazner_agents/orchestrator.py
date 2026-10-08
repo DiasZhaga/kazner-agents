@@ -175,7 +175,7 @@ class Orchestrator:
             )
 
         ctx.state.save_message(envelope, batch_id)
-        start = time.monotonic()
+        start = time.perf_counter()
         status, error = "error", None
         try:
             if recipient == self.name:  # an EvaluationReport: this batch is finished
@@ -193,7 +193,7 @@ class Orchestrator:
             raise
         finally:
             ctx.logger.log(
-                recipient, "message", type_name, status, (time.monotonic() - start) * 1000,
+                recipient, "message", type_name, status, (time.perf_counter() - start) * 1000,
                 sender=sender, recipient=recipient, msg_id=envelope.msg_id, batch_id=batch_id,
                 error=error,
             )

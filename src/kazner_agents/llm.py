@@ -87,7 +87,7 @@ class LLMClient:
             output_tokens += result.output_tokens
             return result.parsed
 
-        start = time.monotonic()
+        start = time.perf_counter()
         status, error = "error", None
         try:
             parsed = call_with_retries(
@@ -102,7 +102,7 @@ class LLMClient:
             self.input_tokens += input_tokens
             self.output_tokens += output_tokens
             self.logger.log(
-                agent, "llm", name, status, (time.monotonic() - start) * 1000,
+                agent, "llm", name, status, (time.perf_counter() - start) * 1000,
                 model=self.backend.model_name, attempts=attempts,
                 input_tokens=input_tokens, output_tokens=output_tokens, error=error,
             )

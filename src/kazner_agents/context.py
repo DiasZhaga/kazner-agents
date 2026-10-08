@@ -41,7 +41,7 @@ class RunContext:
             attempts += 1
             return fn(*args, **kwargs)
 
-        start = time.monotonic()
+        start = time.perf_counter()
         status, error = "error", None
         try:
             if retry:
@@ -57,6 +57,6 @@ class RunContext:
             raise
         finally:
             self.logger.log(
-                agent, "tool", name, status, (time.monotonic() - start) * 1000,
+                agent, "tool", name, status, (time.perf_counter() - start) * 1000,
                 attempts=attempts, error=error,
             )
