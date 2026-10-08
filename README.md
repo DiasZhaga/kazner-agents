@@ -67,22 +67,24 @@ The full table with completion criteria is generated from the code:
 
 ### Message example
 
-A real message from the example run (FakeLLM; one sentence of the batch shown):
+A real message from the example run (`gpt-6-luna`; one sentence of the batch shown):
 
 ```json
 {
-  "msg_id": "776472f5-8278-4859-99b6-8c85b23f59f7",
-  "run_id": "20261008-123736-1ef6", "step": 3,
+  "msg_id": "b230a1c1-b2e0-4edd-bd76-67e6ab2024de",
+  "run_id": "20261008-124721-a6da", "step": 2,
   "sender": "LLMAnnotator", "recipient": "BoundaryNormalizer",
-  "type": "Annotation", "created_at": "2026-10-08T07:37:37.797755Z",
+  "type": "Annotation", "created_at": "2026-10-08T07:47:40.105506Z",
   "payload": {
     "batch_id": "b001", "annotator": "llm",
     "sentences": [{
-      "sentence_id": "kkwiki-абай-құнанбайұлы-s0002",
-      "words": ["Абай", "Шығыс", "пен", "Батыс", "мәдениетін", "жетік", "білген", "."],
+      "sentence_id": "kkwiki-абай-құнанбайұлы-s0007",
+      "words": ["Патша", "өкіметі", "XIX", "ғасырдың", "ортасындағы", "бір", "сайлауда", "оны",
+                "Қарқаралы", "ауданының", "аға", "сұлтандығына", "бекіткен", "."],
       "entities": [
-        {"start_word": 1, "end_word": 1, "type": "GPE", "text": "Шығыс"},
-        {"start_word": 3, "end_word": 3, "type": "GPE", "text": "Батыс"}
+        {"start_word": 2, "end_word": 3, "type": "DATE", "text": "XIX ғасырдың"},
+        {"start_word": 8, "end_word": 9, "type": "GPE", "text": "Қарқаралы ауданының"},
+        {"start_word": 10, "end_word": 11, "type": "POSITION", "text": "аға сұлтандығына"}
       ],
       "labels": null, "notes": []
     }]
@@ -133,15 +135,15 @@ A run writes:
 
 ### Example run (typical scenario)
 
-One Wikipedia article, 20 sentences, batch size 10, so 2 batches. The full log and report are in
-[docs/example-run/](docs/example-run/).
+One Wikipedia article, 20 sentences, batch size 10, so 2 batches, with the real model. The full
+log and report are in [docs/example-run/](docs/example-run/).
 
 ```text
-run 20261008-123736-1ef6: completed
+run 20261008-124721-a6da: completed
   b001: done
   b002: done
-steps: 9, entities: 36, sentences for review: 0
-LLM: 2 calls to FakeLLM (estimated tokens, no cost), tokens in/out: 4969/962
+steps: 9, entities: 46, sentences for review: 0
+LLM: 2 calls to gpt-6-luna, tokens in/out: 8538/2333, estimated cost: $0.0020
 
 Agent                 LLM  Tool  Total   Share
 Evaluator               0     4      4   26.7%
@@ -154,19 +156,33 @@ Total                   2    13     15
 OK: no agent over the limit
 ```
 
-Output excerpt (`annotations.iob2`). With `--llm fake` the labels come from a crude
-capitalisation heuristic that only exercises the pipeline; it is **not** real NER:
+Output excerpt (`annotations.iob2`, same run):
 
 ```text
-Әкесі O
-Құнанбай B-PERSON
-Өскенбайұлы I-PERSON
+Патша O
+өкіметі O
+XIX B-DATE
+ғасырдың I-DATE
+ортасындағы O
+бір O
+сайлауда O
+оны O
+Қарқаралы B-GPE
+ауданының I-GPE
+аға B-POSITION
+сұлтандығына I-POSITION
+бекіткен O
+. O
 ```
+
+With `--llm fake` the same pipeline runs offline, but the labels come from a crude
+capitalisation heuristic that only exercises the pipeline; it is **not** real NER.
 
 ## How the LLM is used
 
 - Model: `gpt-6-luna` with reasoning effort `low`, configurable in `.env`. It was chosen as an
-  inexpensive current OpenAI model with Structured Outputs; about $0.001 per batch of 10 sentences.
+  inexpensive current OpenAI model with Structured Outputs. Measured in the example run: about
+  4.3k input and 1.2k output tokens, $0.001 and 8–18 s per batch of 10 sentences.
 - One call per batch through the Responses API with **Structured Outputs**: the answer must match a
   strict JSON schema (entity type is an enum of the 25 KazNERD labels).
 - The prompt follows the structure from the lecture on prompt engineering: *Role, Task, Context

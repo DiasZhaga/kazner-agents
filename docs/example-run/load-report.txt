@@ -1,4 +1,4 @@
-Load report for run 20261008-123736-1ef6 (LLM + tool calls; limit 40% per agent)
+Load report for run 20261008-124721-a6da (LLM + tool calls; limit 40% per agent)
 
 Agent                 LLM  Tool  Total   Share
 Evaluator               0     4      4   26.7%

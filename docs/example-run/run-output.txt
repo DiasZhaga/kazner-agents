@@ -1,12 +1,12 @@
-run 20261008-123736-1ef6: completed
+> kna run --source wikipedia --title "Абай Құнанбайұлы" --max-sentences 20 --batch-size 10 --llm openai
+run 20261008-124721-a6da: completed
   b001: done
   b002: done
-steps: 9, entities: 36, sentences for review: 0
-LLM: 2 calls to FakeLLM (estimated tokens, no cost), tokens in/out: 4969/962
-outputs: .\outputs\20261008-123736-1ef6
-log: .\logs\20261008-123736-1ef6.jsonl
-
-Load report for run 20261008-123736-1ef6 (LLM + tool calls; limit 40% per agent)
+steps: 9, entities: 46, sentences for review: 0
+LLM: 2 calls to gpt-6-luna, tokens in/out: 8538/2333, estimated cost: $0.0020
+outputs: .\outputs\20261008-124721-a6da
+log: .\logs\20261008-124721-a6da.jsonl
+Load report for run 20261008-124721-a6da (LLM + tool calls; limit 40% per agent)
 
 Agent                 LLM  Tool  Total   Share
 Evaluator               0     4      4   26.7%
