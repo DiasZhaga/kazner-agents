@@ -1,0 +1,15 @@
+# secrets
+.env
+
+# run artefacts (may contain article text)
+logs/
+outputs/
+state/
+
+# python
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+build/
+dist/
