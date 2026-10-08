@@ -102,11 +102,13 @@ class SentenceVerdict(Message):
 class CollectRequest(Message):
     """Orchestrator -> Collector: what text to fetch and how to batch it."""
 
-    source: Literal["wikipedia", "file", "kaznerd_test"]
+    source: Literal["wikipedia", "file", "kaznerd_test"] = Field(
+        description="Where the text comes from (kaznerd_test: A4)"
+    )
     title: str | None = Field(default=None, description="Wikipedia article title")
     path: str | None = Field(default=None, description="Path of a UTF-8 text file")
-    max_sentences: int = Field(default=20, ge=1, le=1000)
-    batch_size: int = Field(default=10, ge=1, le=50)
+    max_sentences: int = Field(default=20, ge=1, le=1000, description="Stop after this many")
+    batch_size: int = Field(default=10, ge=1, le=50, description="Sentences per batch")
 
     @model_validator(mode="after")
     def source_has_its_argument(self) -> CollectRequest:
@@ -120,10 +122,10 @@ class CollectRequest(Message):
 class DocumentBatch(Message):
     """Collector -> annotators: a batch of sentences with provenance."""
 
-    batch_id: str
-    doc_id: str
-    source_url: str
-    licence: str
+    batch_id: str = Field(description="e.g. 'b001'; unique within a run")
+    doc_id: str = Field(description="e.g. 'kkwiki-абай-құнанбайұлы'")
+    source_url: str = Field(description="Article URL, or 'file:<name>' for a local file")
+    licence: str = Field(description="Licence of the source text, e.g. 'CC BY-SA 4.0'")
     sentences: list[Sentence] = Field(min_length=1)
 
 
@@ -131,7 +133,7 @@ class Annotation(Message):
     """Annotator -> BoundaryNormalizer: entities for every sentence of a batch."""
 
     batch_id: str
-    annotator: Literal["mbert", "llm"]
+    annotator: Literal["mbert", "llm"] = Field(description="Which annotator produced it")
     sentences: list[SentenceAnnotation]
 
 
@@ -197,14 +199,14 @@ def _new_id() -> str:
 class Envelope(Message):
     """The wrapper around every payload: who sent what to whom, and when."""
 
-    msg_id: str = Field(default_factory=_new_id)
-    run_id: str
-    step: int = Field(ge=0)
-    sender: str
-    recipient: str
+    msg_id: str = Field(default_factory=_new_id, description="uuid4")
+    run_id: str = Field(description="'YYYYMMDD-HHMMSS-xxxx'")
+    step: int = Field(ge=0, description="Number of the delivery in the run (1, 2, ...)")
+    sender: str = Field(description="Agent that produced the payload")
+    recipient: str = Field(description="Agent that receives it (from the routing table)")
     type: str = Field(description="Class name of the payload")
-    created_at: datetime = Field(default_factory=_now)
-    payload: Payload
+    created_at: datetime = Field(default_factory=_now, description="UTC, ISO-8601 in JSON")
+    payload: Payload = Field(description="One of the payload models below")
 
     @model_validator(mode="before")
     @classmethod
