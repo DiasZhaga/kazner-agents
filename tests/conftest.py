@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+from kazner_agents.agents.llm_annotator import fake_annotation_responder
 from kazner_agents.config import Settings
 from kazner_agents.context import RunContext
 from kazner_agents.llm import FakeLLM, LLMClient
@@ -18,5 +19,5 @@ def ctx(tmp_path: Path) -> RunContext:
     """A run context with FakeLLM; no network, no state store."""
     settings = make_settings(tmp_path)
     logger = RunLogger(tmp_path / "logs" / "test-run.jsonl", "test-run")
-    llm = LLMClient(FakeLLM(lambda request: {}), logger, max_calls=10, timeout_seconds=5)
+    llm = LLMClient(FakeLLM(fake_annotation_responder), logger, max_calls=10, timeout_seconds=5)
     return RunContext("test-run", settings, logger, llm, None, tmp_path / "outputs" / "test-run")

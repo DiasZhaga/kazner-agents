@@ -1,0 +1,23 @@
+{"kaznerd_train_index": 35624, "words": ["Чемпионатқа", "төрт", "жасар", "Тұйғын", "атты", "бүркітімен", "келген", "."], "labels": ["O", "B-DATE", "I-DATE", "B-NON_HUMAN", "O", "O", "O", "O"]}
+{"kaznerd_train_index": 39700, "words": ["Сол", "«", "Казвалантиэ", "»", "сайтына", "тіркелген", "еріктілер", "."], "labels": ["O", "O", "B-CONTACT", "O", "O", "O", "O", "O"]}
+{"kaznerd_train_index": 923, "words": ["Иә", ",", "апат", "айтып", "келмейді", "дейміз", "."], "labels": ["O", "O", "B-ADAGE", "I-ADAGE", "I-ADAGE", "O", "O"]}
+{"kaznerd_train_index": 3859, "words": ["Жайлауды", "қазақтың", "ақбас", "сиырымен", "толтыруды", "көздейді", "."], "labels": ["O", "B-MISCELLANEOUS", "I-MISCELLANEOUS", "O", "O", "O", "O"]}
+{"kaznerd_train_index": 8, "words": ["Орысша", "айтқанда", "«", "Ствол", "мозга", "»", "."], "labels": ["B-LANGUAGE", "O", "O", "O", "O", "O", "O"]}
+{"kaznerd_train_index": 2817, "words": ["Әкімшілік", "құқықбұзушылық", "кодексінде", "667-нші", "бап", "бар", "."], "labels": ["B-LAW", "I-LAW", "I-LAW", "I-LAW", "I-LAW", "O", "O"]}
+{"kaznerd_train_index": 1629, "words": ["Сұйықтық", ",", "«", "Рубеж", "»", "қолданылуда", "."], "labels": ["O", "O", "O", "B-PRODUCT", "O", "O", "O"]}
+{"kaznerd_train_index": 2108, "words": ["Коронавирустың", "бұған", "дейінгі", "вирустардан", "қауіптілігі", "мынада", "."], "labels": ["B-DISEASE", "O", "O", "O", "O", "O", "O"]}
+{"kaznerd_train_index": 2224, "words": ["Елордада", "Жаңа", "жыл", "мейрамын", "тойлау", "басталды", "."], "labels": ["O", "B-EVENT", "I-EVENT", "O", "O", "O", "O"]}
+{"kaznerd_train_index": 2147, "words": ["Ескерткіш", "Жетісу", "ауданындағы", "гүлдер", "саябағына", "қойылды", "."], "labels": ["O", "B-LOCATION", "O", "O", "O", "O", "O"]}
+{"kaznerd_train_index": 1101, "words": ["Жалаңашкөл", "заставасы", "бұрын", "осы", "ғимаратта", "болған", "."], "labels": ["B-FACILITY", "O", "O", "O", "O", "O", "O"]}
+{"kaznerd_train_index": 3737, "words": ["Енді", "Брекситті", "еркін", "жүзеге", "асыра", "аламыз", "."], "labels": ["O", "B-PROJECT", "O", "O", "O", "O", "O"]}
+{"kaznerd_train_index": 739, "words": ["Мұнда", "оқушылар", "отыз", "минуттан", "оқып", "жатыр", "."], "labels": ["O", "O", "B-TIME", "I-TIME", "O", "O", "O"]}
+{"kaznerd_train_index": 7983, "words": ["Сіздер", "қазіргі", "таңда", "Алтын", "адамның", "отанында", "."], "labels": ["O", "O", "O", "B-ART", "I-ART", "O", "O"]}
+{"kaznerd_train_index": 1118, "words": ["2", "алматылық", "300", "купоннан", "артық", "жинаған", "."], "labels": ["B-CARDINAL", "B-NORP", "B-CARDINAL", "O", "O", "O", "O"]}
+{"kaznerd_train_index": 760, "words": ["Сол", ",", "бірінші", ",", "жастарымызды", "шақыру", "."], "labels": ["O", "O", "B-ORDINAL", "O", "O", "O", "O"]}
+{"kaznerd_train_index": 1655, "words": ["2000", "–", "3000", "килограмм", "дайындаймыз", "күніне", "."], "labels": ["B-QUANTITY", "I-QUANTITY", "I-QUANTITY", "I-QUANTITY", "O", "O", "O"]}
+{"kaznerd_train_index": 2979, "words": ["2017-нші", "жылмен", "салыстырғанда", "өсім", "12", "пайыз", "."], "labels": ["B-DATE", "I-DATE", "O", "O", "B-PERCENTAGE", "I-PERCENTAGE", "O"]}
+{"kaznerd_train_index": 571, "words": ["Жоба", "құны", "сегіз", "миллиард", "теңгеге", "жуық", "."], "labels": ["O", "O", "B-MONEY", "I-MONEY", "I-MONEY", "I-MONEY", "O"]}
+{"kaznerd_train_index": 2373, "words": ["Президенттің", "жеке", "тапсырмасына", "бақылау", "көп", "көрінеді", "."], "labels": ["B-POSITION", "O", "O", "O", "O", "O", "O"]}
+{"kaznerd_train_index": 965, "words": ["Бұл", "жайында", "Сенаттың", "ресми", "сайтында", "жарияланды", "."], "labels": ["O", "O", "B-ORGANISATION", "O", "O", "O", "O"]}
+{"kaznerd_train_index": 336, "words": ["Құбырдың", "құрылысы", "жайында", "әріптесім", "Гүлжан", "Марқабаева", "."], "labels": ["O", "O", "O", "O", "B-PERSON", "I-PERSON", "O"]}
+{"kaznerd_train_index": 294, "words": ["Нұр-Сұлтан", "алғашқы", "қарды", "қалай", "қарсы", "алды", "?"], "labels": ["B-GPE", "O", "O", "O", "O", "O", "O"]}
