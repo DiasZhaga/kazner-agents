@@ -264,6 +264,8 @@ tests/
 
 ## Data and licences
 
+Links, versions, checksums and how each dataset is used: [DATASET.md](DATASET.md).
+
 KazNERD: R. Yeshpanov, Y. Khassanov, H. A. Varol. *KazNERD: Kazakh Named Entity Recognition
 Dataset.* LREC 2022. CC BY 4.0, <https://github.com/IS2AI/KazNERD>. The few-shot file contains
 23 sentences from its training split. Text fetched from Kazakh Wikipedia is CC BY-SA 4.0.
