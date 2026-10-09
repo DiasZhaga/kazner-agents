@@ -106,3 +106,20 @@ def test_exact_text_at_the_given_place_beats_a_suffixed_match():
 def test_short_text_needs_an_exact_match():
     labels, repairs = spans_to_iob2(["Ерлан", "келді"], [span(0, 0, "PERSON", text="Ер")])
     assert labels == ["O", "O"] and "dropped" in repairs[0]
+
+
+def test_a_closing_quote_is_not_a_suffix():
+    # Real case: the model included the closing quote in a book title (one word too long).
+    words = ["“", "Желтоқсан", "құрбандарын", "жоқтау", "”", "жинағы", "."]
+    labels, repairs = spans_to_iob2(
+        words, [span(1, 4, "ART", text="Желтоқсан құрбандарын жоқтау")]
+    )
+    assert labels == ["O", "B-ART", "I-ART", "I-ART", "O", "O", "O"]
+    assert "moved ART span 1-4 to 1-3" in repairs[0]
+
+
+def test_suffix_is_only_letters_inside_the_last_word():
+    words = ["Х", ".", "Қожа-Ахмет", ")", "газеті"]
+    labels, repairs = spans_to_iob2(words, [span(0, 3, "PERSON", text="Х . Қожа-Ахмет")])
+    assert labels == ["B-PERSON", "I-PERSON", "I-PERSON", "O", "O"]
+    assert "moved" in repairs[0]

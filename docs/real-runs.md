@@ -30,6 +30,12 @@ calls took 8–18 s per batch of 10 sentences. No agent was over 40% of the call
 - **The model writes the dictionary form of a word** (`Қазақстан` for `Қазақстанның`). The
   normaliser dropped such spans as "text not found". Fixed: a text that differs from the words
   only by a suffix on the last word (at most 12 letters) is now accepted.
+- **The first version of that fix was too loose.** It also accepted a closing quote or bracket
+  as an "ending", so spans that were one word too long (`“Желтоқсан құрбандарын жоқтау ”`)
+  passed unrepaired. Found while preparing the report; now the ending must be letters inside
+  the last word. Re-normalising the stored model answers of all six runs offline (no new API
+  calls) gives: second Желтоқсан run 8 spans moved + 1 overlap dropped, 1 sentence for review;
+  Алматы 0 sentences for review; the other runs unchanged.
 - **Dots inside quotes and brackets** (`“Желтоқсан. 1986. Алматы.”`, `(1991, реж. Т.Теменов)`)
   split sentences. Fixed: the splitter does not end a sentence inside a matching pair of quotes
   or brackets, and `реж.` is a known abbreviation.

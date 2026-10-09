@@ -16,30 +16,42 @@ def _squash(text: str) -> str:
 
 
 # LLMs often write the dictionary form of the last word ('Қазақстан' for 'Қазақстанның').
-# A text that matches the words except for such an ending is accepted. Kazakh suffix chains
-# are rarely longer than 12 letters; very short texts (under 3 letters) must match exactly.
+# A text that matches the words except for such an ending is accepted. The ending must be
+# letters INSIDE the last word: a separate token such as a closing quote '”' is not an ending,
+# it means the span is one word too long. Kazakh suffix chains are rarely longer than
+# 12 letters; very short texts (under 3 letters) must match exactly.
 MAX_SUFFIX = 12
 
 
-def _same_or_suffixed(joined: str, target: str) -> bool:
-    if joined == target:
-        return True
+def _suffixed(words: list[str], start: int, end: int, target: str) -> bool:
+    """Do words[start..end] spell `target` plus a letter ending on the last word only?"""
+    if len(target) < 3 or start > end or end >= len(words):
+        return False
+    before_last = _squash("".join(words[start:end]))
+    last = _squash(words[end])
+    if not target.startswith(before_last):
+        return False
+    rest = target[len(before_last):]  # the part of the text that falls on the last word
+    ending = last[len(rest):]
     return (
-        len(target) >= 3
-        and joined.startswith(target)
-        and len(joined) - len(target) <= MAX_SUFFIX
+        len(rest) > 0
+        and last.startswith(rest)
+        and 0 < len(ending) <= MAX_SUFFIX
+        and ending.isalpha()
     )
 
 
 def text_matches(words: list[str], start: int, end: int, text: str) -> bool:
-    """Do words[start..end] spell `text` (allowing a suffix on the last word)?"""
-    return _same_or_suffixed(_squash("".join(words[start : end + 1])), _squash(text))
+    """Do words[start..end] spell `text` (allowing a letter ending on the last word)?"""
+    target = _squash(text)
+    joined = _squash("".join(words[start : end + 1]))
+    return joined == target or _suffixed(words, start, end, target)
 
 
 def locate_text(words: list[str], text: str, near: int) -> tuple[int, int] | None:
     """Find the words that spell `text`; prefer the match closest to `near`.
 
-    Exact matches win over matches that only differ by a suffix on the last word.
+    Exact matches win over matches that only differ by a letter ending on the last word.
     Returns (start, end) word indices, inclusive, or None if the text is not in the sentence.
     """
     target = _squash(text)
@@ -52,7 +64,7 @@ def locate_text(words: list[str], text: str, near: int) -> tuple[int, int] | Non
             joined += _squash(words[end])
             if joined == target:
                 exact.append((start, end))
-            elif _same_or_suffixed(joined, target):
+            elif _suffixed(words, start, end, target):
                 suffixed.append((start, end))
             if len(joined) >= len(target):
                 break
