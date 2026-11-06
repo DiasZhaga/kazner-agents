@@ -177,8 +177,10 @@ OK: no agent over the limit
 
 On KazNERD's own domain the fine-tuned mBERT is near perfect, and one of the two LLM
 adjudications made the final labels worse: the LLM judged «Бір-екеуі» ("one or two of them")
-not an entity, while KazNERD labels it CARDINAL. Earlier runs on Wikipedia articles and what
-they revealed: [docs/real-runs.md](docs/real-runs.md).
+not an entity, while KazNERD labels it CARDINAL. On a 200-sentence KazNERD sample: mBERT F1 0.945, LLM 0.773, final
+after the Verifier 0.908 — the LLM adjudicator follows meaning rather than KazNERD's conventions.
+All real runs, including Wikipedia articles with annotator agreement, and what they revealed:
+[docs/real-runs.md](docs/real-runs.md).
 
 ## Test scenarios
 
