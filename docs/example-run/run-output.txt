@@ -1,19 +1,27 @@
-> kna run --source wikipedia --title "Абай Құнанбайұлы" --max-sentences 20 --batch-size 10 --llm openai
-run 20261008-124721-a6da: completed
+> kna run --source kaznerd_test --max-sentences 20 --batch-size 10 --annotators mbert,llm --tagger mbert --llm openai
+run 20261106-101402-60cb: completed
+annotators: mbert, llm
   b001: done
   b002: done
-steps: 9, entities: 46, sentences for review: 0
-LLM: 2 calls to gpt-6-luna, tokens in/out: 8538/2333, estimated cost: $0.0020
-outputs: .\outputs\20261008-124721-a6da
-log: .\logs\20261008-124721-a6da.jsonl
-Load report for run 20261008-124721-a6da (LLM + tool calls; limit 40% per agent)
+steps: 19, sentences: 20, entities: 24, sentences for review: 0
+verifier decisions: adjudicated 2, agreed 23
+gold F1  final 0.980  (P 1.000, R 0.960)
+gold F1  llm   0.939  (P 0.958, R 0.920)
+gold F1  mbert 1.000  (P 1.000, R 1.000)
+LLM: 4 calls to gpt-6-luna, tokens in/out: 9470/1549, estimated cost: $0.0017
+outputs: .\outputs\20261106-101402-60cb
+log: .\logs\20261106-101402-60cb.jsonl
+
+Load report for run 20261106-101402-60cb (LLM + tool calls; limit 40% per agent)
 
 Agent                 LLM  Tool  Total   Share
-Evaluator               0     4      4   26.7%
-Orchestrator            0     4      4   26.7%
-LLMAnnotator            2     1      3   20.0%
-BoundaryNormalizer      0     2      2   13.3%
-Collector               0     2      2   13.3%
-Total                   2    13     15
+Evaluator               0     6      6   24.0%
+BoundaryNormalizer      0     4      4   16.0%
+Orchestrator            0     4      4   16.0%
+Verifier                2     2      4   16.0%
+LLMAnnotator            2     1      3   12.0%
+PreAnnotator            0     3      3   12.0%
+Collector               0     1      1    4.0%
+Total                   4    21     25
 
 OK: no agent over the limit

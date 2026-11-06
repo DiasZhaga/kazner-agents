@@ -175,9 +175,23 @@ A2 (agents built now):
 | Evaluator | state lookup ×1, export ×1 per batch | 4 | 27% |
 | Total |  | 15 | max 27% ≤ 40% ✓ |
 
-A4 (all agents): PreAnnotator +2 (inference per batch), BoundaryNormalizer +2 (second
-Annotation per batch), Verifier +2 (adjudication per batch, only if disagreements) → 21 calls,
-max 4/21 = 19%.
+A4, measured (real run `20261106-101402-60cb` in `docs/example-run/`: KazNERD test sample, 20 sentences,
+2 batches, mBERT + gpt-6-luna; the Verifier had two regions to adjudicate):
+
+| Agent | Calls | Total | Share |
+|---|---|---|---|
+| Evaluator | state lookup + export per batch, scorer + report at the end | 6 | 24% |
+| BoundaryNormalizer | validator per Annotation (2 per batch) | 4 | 16% |
+| Orchestrator | create run, batch status ×2, finish run | 4 | 16% |
+| Verifier | guideline rules + LLM adjudication per batch | 4 | 16% |
+| LLMAnnotator | few-shot store + LLM per batch | 3 | 12% |
+| PreAnnotator | model load + inference per batch | 3 | 12% |
+| Collector | KazNERD reader | 1 | 4% |
+| Total |  | 25 | max 24% ≤ 40% ✓ |
+
+Known limit: with ONE annotator and many batches the Evaluator's share approaches 40% (its
+2 calls per batch against 1 call each for the annotator and the Normalizer): 39% for mBERT only
+on 100 sentences. The typical scenario runs both annotators.
 
 With a single batch the A2 shares are 3/10 for the Orchestrator and 3/10 for the Evaluator, still
 below 40%. This is a design estimate; `kna load-report` measures the real shares from the logs.

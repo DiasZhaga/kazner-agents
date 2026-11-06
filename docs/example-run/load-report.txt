@@ -1,11 +1,13 @@
-Load report for run 20261008-124721-a6da (LLM + tool calls; limit 40% per agent)
+Load report for run 20261106-101402-60cb (LLM + tool calls; limit 40% per agent)
 
 Agent                 LLM  Tool  Total   Share
-Evaluator               0     4      4   26.7%
-Orchestrator            0     4      4   26.7%
-LLMAnnotator            2     1      3   20.0%
-BoundaryNormalizer      0     2      2   13.3%
-Collector               0     2      2   13.3%
-Total                   2    13     15
+Evaluator               0     6      6   24.0%
+BoundaryNormalizer      0     4      4   16.0%
+Orchestrator            0     4      4   16.0%
+Verifier                2     2      4   16.0%
+LLMAnnotator            2     1      3   12.0%
+PreAnnotator            0     3      3   12.0%
+Collector               0     1      1    4.0%
+Total                   4    21     25
 
 OK: no agent over the limit
