@@ -68,8 +68,11 @@ class MBertTagger:
         try:
             import torch
             from transformers import AutoModelForTokenClassification, AutoTokenizer
+            from transformers.utils import logging as hf_logging
         except ImportError as exc:
             raise AgentError('mBERT needs torch and transformers: pip install -e ".[mbert]"') from exc
+        hf_logging.disable_progress_bar()  # no download/loading bars in the CLI output
+        hf_logging.set_verbosity_error()
         if not Path(path).exists():
             raise AgentError(f"mBERT checkpoint not found at {path} (set KNA_MBERT_PATH)")
         self.torch = torch
@@ -119,10 +122,10 @@ class PreAnnotator(Agent):
         )
         sentences = []
         for sentence, (labels, cut_off) in zip(payload.sentences, results):
-            notes = [f"{cut_off} words beyond {MAX_TOKENS} sub-tokens were labelled O"] if cut_off else []
-            sentences.append(
-                SentenceAnnotation(
-                    sentence_id=sentence.sentence_id, words=sentence.words, labels=labels, notes=notes
-                )
-            )
+            notes = []
+            if cut_off:
+                notes.append(f"{cut_off} words beyond {MAX_TOKENS} sub-tokens were labelled O")
+            sentences.append(SentenceAnnotation(
+                sentence_id=sentence.sentence_id, words=sentence.words, labels=labels, notes=notes,
+            ))
         return [Annotation(batch_id=payload.batch_id, annotator="mbert", sentences=sentences)]
