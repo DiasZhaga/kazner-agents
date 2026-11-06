@@ -98,8 +98,8 @@ Words travel inside the annotation messages so that each agent can work from the
 and can be tested in isolation. Provenance (source URL, licence) stays in the `DocumentBatch`
 stored in the state store; the Evaluator looks it up there when exporting.
 
-Routing table used by the Orchestrator (A2; A4 adds the Verifier between the Normalizer and the
-Evaluator):
+Routing table used by the Orchestrator in A2 (single annotator). The A4 table, built from the run
+plan, is in §11:
 
 | Payload | Recipient |
 |---|---|
@@ -185,7 +185,7 @@ A run that stops early (e.g. the article does not exist) can legitimately fail t
 
 ## 9. Scope by stage
 
-### Assignment 2 — build now
+### Assignment 2 — done
 - Package skeleton, `.env.example`, README (setup, run, example, Mermaid diagram, agents table).
 - Envelope + all payload models (even for agents not yet implemented).
 - Orchestrator with state store, limits and loop protection.
@@ -202,7 +202,7 @@ A run that stops early (e.g. the article does not exist) can legitimately fail t
 - Tests listed in CLAUDE.md.
 - `docs/agents.md` generated from §4 and `docs/messages.md` from §5, kept in sync with the code.
 
-### Assignment 4 — later
+### Assignment 4 — build now (decisions in §11)
 PreAnnotator (fine-tuned mBERT checkpoint from the pilot), Verifier, Evaluator `gold` and
 `agreement` modes (via `kazner`),
 human-review queue, the `kaznerd_test` source with gold labels, at least 5 test scenarios with
@@ -227,3 +227,65 @@ Few-shot examples for the LLMAnnotator come from the KazNERD training split. Kaz
 under CC BY 4.0 (ISSAI, Yeshpanov et al., LREC 2022), so a small selection is stored in the
 repository with attribution. Kazakh Wikipedia text is CC BY-SA 4.0; exports derived from it carry
 that licence in their provenance.
+
+## 11. Assignment 4 decisions
+
+**Run plan and routing.** The Orchestrator plans which annotators run (`--annotators`, default
+`llm,mbert`) and builds the routing table from that plan. A payload can go to several recipients.
+
+| Payload | Recipients |
+|---|---|
+| CollectRequest | Collector |
+| DocumentBatch | every planned annotator: PreAnnotator, LLMAnnotator |
+| Annotation | BoundaryNormalizer |
+| NormalizedAnnotation | Verifier (two annotators) or Evaluator (one annotator) |
+| VerificationResult | Evaluator |
+| ReportRequest | Evaluator (once, after the last batch) |
+| EvaluationReport | Orchestrator |
+
+**Verifier.** It waits for both NormalizedAnnotations of a batch: it keeps the first and acts on
+the second. Per sentence it compares the entities `(start, end, type)` of the two annotators:
+
+1. Entities found by both are **agreed**.
+2. The rest form **disagreement regions**: groups of overlapping spans that are not agreed.
+3. **Guideline rules** (deterministic, no LLM) settle a region when the two spans have the same
+   type and differ only by punctuation at the edge: KazNERD leaves quotes and brackets around a
+   name outside it (`« O`, `Атырау B-LOCATION`, `» O`), so the span without the punctuation wins.
+4. The remaining regions of a batch go to **one LLM adjudication call** (Structured Outputs):
+   for each region the model picks `first`, `second`, `neither` or `unsure`, with a rationale.
+5. `unsure`, or an adjudication call that fails after its retries, makes the region
+   **escalated**: it is added to the human-review queue (SQLite table `review_queue`, shown by
+   `kna review <run_id>`), and until a person decides, the mBERT version is kept (it is trained
+   on the KazNERD guidelines). A failed adjudication does not fail the batch.
+
+The Verifier → Annotator revision loop is not built: adjudication settles the same cases with one
+call per batch, and loop protection would still allow one revision if it is added later.
+
+**Evaluator.** Three modes, chosen from the data: `gold` (the batch has gold labels: precision,
+recall and F1 for the final labels and for each annotator), `agreement` (two annotators, no gold:
+entity-level F1 of one annotator against the other, and token agreement), `summary` (one
+annotator, no gold). Scoring is seqeval in its default mode — exactly what
+`kazner.evaluate.compute_metrics` computes; `seqeval` is a direct dependency because `kazner`
+itself pulls in torch and the training stack, and a test checks the numbers against `kazner`
+when it is installed. After the last batch the Orchestrator sends a ReportRequest; the Evaluator
+scores the whole run from the exported `sentences.jsonl` (micro scores over all sentences, not an
+average of batch scores) and writes `report.json` and `report.md`.
+
+**`kaznerd_test` source.** The Collector reads `IOB2_test.txt` from `KNA_KAZNERD_DIR` and takes a
+deterministic sample of `max_sentences` sentences (`random.Random(seed)`, kept in file order).
+The gold labels travel in the DocumentBatch.
+
+**PreAnnotator.** `MBertTagger` loads the fine-tuned checkpoint once per run from
+`KNA_MBERT_PATH` (the pilot's `mbert_100pct`, test F1 0.945 in-domain), labels the first
+sub-token of each word as in training, and accepts up to 512 sub-tokens; words beyond that get
+`O` and a note. torch and transformers are an optional extra (`pip install -e ".[mbert]"`);
+tests use a deterministic `FakeTagger`.
+
+**Limits for A4.** A batch now takes 9 messages (DocumentBatch ×2, Annotation ×2,
+NormalizedAnnotation ×2, VerificationResult, EvaluationReport) plus 1 CollectRequest and
+2 messages for the final report; a batch makes up to 2 LLM calls (annotation, adjudication).
+Defaults: 150 steps (16 batches), 900 s, 40 LLM calls (20 batches).
+
+**Test scenarios.** `scenarios/*.json` describe the input of a run and its expected results;
+`kna scenarios` runs them offline with FakeLLM and FakeTagger and prints pass/fail, and pytest
+runs the same files.

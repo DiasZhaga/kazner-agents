@@ -5,23 +5,27 @@ Course project for "Artificial Intelligence and Machine Learning": a multi-agent
 produces word-level named-entity annotations for Kazakh text. It supports the author's MSc thesis
 on adapting language models to Kazakh (out-of-domain evaluation data; LLM-based NER as in WP3).
 
-The project is graded in three stages. CURRENT STAGE: Assignment 2 (due tomorrow) — architecture,
-agent specification, and a prototype in which at least two agents exchange structured messages.
-Assignment 4 (week 10) will need the full system; design for it, but do not build it now.
+The project is graded in three stages. Assignment 2 (architecture + prototype) is done.
+CURRENT STAGE: Assignment 4 (weeks 9-10) — the full system: all agents working together, load
+balance <= 40% proven by logs, error handling, limits, loop protection, logging, and 5+ test
+scenarios with expected results that pass. The exam (10+ scenarios, report, slides) comes later.
 
 All architecture decisions are in `DESIGN.md`. Treat it as the specification. If something in it
 turns out to be wrong or impossible, say so and propose a change — do not silently deviate.
 
 ## Related folders (read-only for this project)
 - `../ner-project` — pilot research code; KazNERD data in `../ner-project/data`.
-- `../kazner` — the refactored NER toolkit (prediction contract and evaluator). Will be used by
-  the Evaluator agent in Assignment 4; not required for Assignment 2.
+- `../kazner` — the refactored NER toolkit (prediction contract and evaluator). The Evaluator
+  scores exactly as `kazner.evaluate.compute_metrics` does (seqeval, default mode).
+- `../ner-project/results/data_efficiency/mbert_100pct` — the fine-tuned mBERT used by the
+  PreAnnotator (path from `.env`, never committed).
 
 ## Hard rules
 - API keys only in `.env` (gitignored). Provide `.env.example`. Never print or log a key.
 - Every LLM call goes through ONE client module with: timeout, up to 3 retries with exponential
   backoff, token-usage logging, and a hard per-run cap on LLM calls from config.
 - A deterministic `FakeLLM` backend must exist. All tests run with it — no network, no cost.
+  Likewise a deterministic `FakeTagger` stands in for mBERT: tests never load torch or a model.
 - Ask before running anything against the real API more than a few times. Report the token usage
   and estimated cost after each real run.
 - Never commit datasets, model checkpoints, logs with personal data, or `.env`.
