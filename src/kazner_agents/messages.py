@@ -83,10 +83,15 @@ class SentenceLabels(Message):
 
 
 class Decision(Message):
-    start_word: int = Field(ge=0)
-    end_word: int = Field(ge=0)
+    """How the Verifier settled one region where the two annotations were compared."""
+
+    start_word: int = Field(ge=0, description="First word of the region")
+    end_word: int = Field(ge=0, description="Last word of the region (inclusive)")
     decision: Literal["agreed", "adjudicated", "escalated"]
-    rationale: str
+    kept: Literal["mbert", "llm", "both", "neither"] = Field(
+        description="Whose labels the final annotation keeps for this region"
+    )
+    rationale: str = Field(description="Why: 'both annotators agree', a rule, or the LLM's reason")
 
 
 class SentenceVerdict(Message):
@@ -109,6 +114,7 @@ class CollectRequest(Message):
     path: str | None = Field(default=None, description="Path of a UTF-8 text file")
     max_sentences: int = Field(default=20, ge=1, le=1000, description="Stop after this many")
     batch_size: int = Field(default=10, ge=1, le=50, description="Sentences per batch")
+    seed: int = Field(default=13, description="Seed of the kaznerd_test sample")
 
     @model_validator(mode="after")
     def source_has_its_argument(self) -> CollectRequest:
@@ -138,7 +144,7 @@ class Annotation(Message):
 
 
 class NormalizedAnnotation(Message):
-    """BoundaryNormalizer -> Evaluator (A4: Verifier): valid IOB2 labels per word."""
+    """BoundaryNormalizer -> Verifier (one annotator: Evaluator): valid IOB2 labels per word."""
 
     batch_id: str
     annotator: Literal["mbert", "llm"]
@@ -147,21 +153,32 @@ class NormalizedAnnotation(Message):
 
 
 class VerificationResult(Message):
-    """Verifier -> Evaluator (A4): final labels and a decision for every disagreement."""
+    """Verifier -> Evaluator: final labels and a decision for every compared region."""
 
     batch_id: str
     sentences: list[SentenceVerdict]
 
 
-class EvaluationReport(Message):
-    """Evaluator -> Orchestrator: quality numbers for a batch and the exported files."""
+class ReportRequest(Message):
+    """Orchestrator -> Evaluator, once after the last batch: score the whole run."""
 
-    batch_id: str
+    batch_ids: list[str] = Field(description="Batches that finished with an EvaluationReport")
+
+
+class EvaluationReport(Message):
+    """Evaluator -> Orchestrator: quality numbers for a batch (or the whole run) and the files."""
+
+    batch_id: str = Field(description="The batch, or 'run' for the report on the whole run")
     mode: Literal["gold", "agreement", "summary"]
-    precision: float | None = None
+    precision: float | None = Field(default=None, description="Final labels against gold")
     recall: float | None = None
     f1: float | None = None
-    agreement_rate: float | None = None
+    agreement_rate: float | None = Field(
+        default=None, description="Entity-level F1 of one annotator against the other"
+    )
+    per_annotator: dict[str, dict[str, float]] = Field(
+        default_factory=dict, description="Gold mode: precision/recall/f1 of each annotator"
+    )
     counts: dict[str, int] = Field(default_factory=dict)
     export_paths: list[str] = Field(default_factory=list)
 
@@ -172,6 +189,7 @@ Payload = Union[
     Annotation,
     NormalizedAnnotation,
     VerificationResult,
+    ReportRequest,
     EvaluationReport,
 ]
 
@@ -183,6 +201,7 @@ PAYLOAD_TYPES: dict[str, type[Message]] = {
         Annotation,
         NormalizedAnnotation,
         VerificationResult,
+        ReportRequest,
         EvaluationReport,
     )
 }

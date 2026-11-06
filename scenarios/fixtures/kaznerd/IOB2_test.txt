@@ -1,0 +1,91 @@
+Абай B-PERSON
+Құнанбайұлы I-PERSON
+1845 B-DATE
+жылы I-DATE
+Шыңғыстауда B-LOCATION
+туған O
+. O
+
+Астана B-GPE
+– O
+Қазақстанның B-GPE
+астанасы O
+. O
+
+Назарбаев B-ORGANISATION
+Университеті I-ORGANISATION
+2010 B-DATE
+жылы I-DATE
+ашылды O
+. O
+
+Президент B-POSITION
+Ақордада B-FACILITY
+сөз O
+сөйледі O
+. O
+
+Биыл B-DATE
+елімізде O
+20 B-CARDINAL
+мың I-CARDINAL
+бала O
+мектепке O
+барады O
+. O
+
+Алматы B-GPE
+қаласында O
+бағалар O
+5 B-PERCENTAGE
+пайызға I-PERCENTAGE
+өсті O
+. O
+
+Ол O
+қазақ B-LANGUAGE
+тілінде I-LANGUAGE
+және O
+орыс B-LANGUAGE
+тілінде I-LANGUAGE
+сөйлейді O
+. O
+
+Наурыз B-EVENT
+мейрамы I-EVENT
+22 B-DATE
+наурызда I-DATE
+тойланады O
+. O
+
+Мұхтар B-PERSON
+Әуезов I-PERSON
+« O
+Абай B-ART
+жолы I-ART
+» O
+романын O
+жазды O
+. O
+
+Жоба O
+құны O
+3 B-MONEY
+миллиард I-MONEY
+теңге I-MONEY
+болды O
+. O
+
+Каспий B-LOCATION
+теңізі I-LOCATION
+Атырау B-GPE
+облысында I-GPE
+орналасқан O
+. O
+
+Екінші B-ORDINAL
+кезең O
+сағат B-TIME
+10-да I-TIME
+басталады O
+. O

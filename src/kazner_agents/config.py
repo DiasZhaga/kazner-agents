@@ -23,13 +23,15 @@ class Settings:
     reasoning_effort: str = "low"
     price_input_per_1m: float = 0.10
     price_output_per_1m: float = 0.50
-    max_steps: int = 60
-    max_seconds: float = 300.0
+    max_steps: int = 150
+    max_seconds: float = 900.0
     llm_timeout_seconds: float = 60.0
     max_llm_calls: int = 40
     max_retries: int = 3
     retry_base_delay: float = 1.0
     user_agent: str = "kazner-agents/0.1 (course project)"
+    kaznerd_dir: Path = Path("../ner-project/data")
+    mbert_path: Path = Path("../ner-project/results/data_efficiency/mbert_100pct")
 
     @property
     def logs_dir(self) -> Path:
@@ -62,9 +64,12 @@ def load_settings(home: Path | None = None) -> Settings:
         reasoning_effort=get("KNA_REASONING_EFFORT", "low"),
         price_input_per_1m=float(get("KNA_PRICE_INPUT_PER_1M", "0.10")),
         price_output_per_1m=float(get("KNA_PRICE_OUTPUT_PER_1M", "0.50")),
-        max_steps=int(get("KNA_MAX_STEPS", "60")),
-        max_seconds=float(get("KNA_MAX_SECONDS", "300")),
+        max_steps=int(get("KNA_MAX_STEPS", "150")),
+        max_seconds=float(get("KNA_MAX_SECONDS", "900")),
         llm_timeout_seconds=float(get("KNA_LLM_TIMEOUT_SECONDS", "60")),
         max_llm_calls=int(get("KNA_MAX_LLM_CALLS", "40")),
         user_agent=get("KNA_USER_AGENT", "kazner-agents/0.1 (course project)"),
+        # Relative paths are relative to the project folder, not the current directory.
+        kaznerd_dir=(home / get("KNA_KAZNERD_DIR", str(Settings.kaznerd_dir))).resolve(),
+        mbert_path=(home / get("KNA_MBERT_PATH", str(Settings.mbert_path))).resolve(),
     )

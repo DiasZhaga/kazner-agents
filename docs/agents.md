@@ -2,15 +2,15 @@
 
 # Agents
 
-Six agents plus the orchestrator (DESIGN.md section 4). Stage A2 = implemented now,
-A4 = planned for Assignment 4. Every agent has at most 5 tools.
+Six agents plus the orchestrator (DESIGN.md sections 4 and 11). Stage = the assignment in
+which the agent was built. Every agent has at most 5 tools.
 
 | Agent | Stage | Role | Input | Output | Tools | Done when |
 |---|---|---|---|---|---|---|
 | Orchestrator | A2 | Plan batches, route messages, enforce limits | Task (CollectRequest) | RunSummary | state store | All batches have an EvaluationReport, or a limit is hit |
-| Collector | A2 | Fetch text, split into sentences and words, record provenance | CollectRequest | DocumentBatch (one per batch) | Wikipedia API; file reader; sentence/word splitter | All requested sentences emitted with source URL and licence |
+| Collector | A2 | Fetch text, split into sentences and words, record provenance | CollectRequest | DocumentBatch (one per batch) | Wikipedia API; file reader; KazNERD reader; sentence/word splitter | All requested sentences emitted with source URL and licence |
 | PreAnnotator | A4 | Label words with the fine-tuned mBERT | DocumentBatch | Annotation (annotator = mbert, IOB2 labels) | mBERT inference | Every word has a label |
 | LLMAnnotator | A2 | Label words with an LLM using few-shot KazNERD examples | DocumentBatch | Annotation (annotator = llm, spans) | LLM; few-shot example store | Valid JSON for every sentence |
 | BoundaryNormalizer | A2 | Convert spans to word-level IOB2, repair invalid spans and sequences, validate labels | Annotation (spans or IOB2 labels) | NormalizedAnnotation | IOB2 validator; label set | Output passes validation |
 | Verifier | A4 | Compare the two annotations; accept agreement, adjudicate or escalate disagreement | 2 x NormalizedAnnotation | VerificationResult | LLM (adjudication); guideline rules; human-review queue | Every disagreement is resolved or escalated |
-| Evaluator | A2 | Score against gold when available; otherwise report agreement or a summary; export | VerificationResult (+ gold); in A2 NormalizedAnnotation | EvaluationReport, exported files | state store; file exporter; kazner evaluator (A4) | Report and exports written |
+| Evaluator | A2 | Score against gold when available; otherwise report agreement or a summary; export | VerificationResult (one annotator: NormalizedAnnotation); ReportRequest | EvaluationReport, exported files | state store; file exporter; seqeval scorer (as in kazner) | Report and exports written |

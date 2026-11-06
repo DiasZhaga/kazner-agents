@@ -30,7 +30,7 @@ The wrapper around every payload: who sent what to whom, and when.
 | recipient | `str` | yes | Agent that receives it (from the routing table) |
 | type | `str` | yes | Class name of the payload |
 | created_at | `datetime` | no | UTC, ISO-8601 in JSON |
-| payload | `union[CollectRequest, DocumentBatch, Annotation, NormalizedAnnotation, VerificationResult, EvaluationReport]` | yes | One of the payload models below |
+| payload | `union[CollectRequest, DocumentBatch, Annotation, NormalizedAnnotation, VerificationResult, ReportRequest, EvaluationReport]` | yes | One of the payload models below |
 
 ## Payloads
 
@@ -45,6 +45,7 @@ Orchestrator -> Collector: what text to fetch and how to batch it.
 | path | `str \| None` | no | Path of a UTF-8 text file |
 | max_sentences | `int` | no | Stop after this many |
 | batch_size | `int` | no | Sentences per batch |
+| seed | `int` | no | Seed of the kaznerd_test sample |
 
 ### DocumentBatch
 
@@ -70,7 +71,7 @@ Annotator -> BoundaryNormalizer: entities for every sentence of a batch.
 
 ### NormalizedAnnotation
 
-BoundaryNormalizer -> Evaluator (A4: Verifier): valid IOB2 labels per word.
+BoundaryNormalizer -> Verifier (one annotator: Evaluator): valid IOB2 labels per word.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
@@ -81,25 +82,34 @@ BoundaryNormalizer -> Evaluator (A4: Verifier): valid IOB2 labels per word.
 
 ### VerificationResult
 
-Verifier -> Evaluator (A4): final labels and a decision for every disagreement.
+Verifier -> Evaluator: final labels and a decision for every compared region.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
 | batch_id | `str` | yes |  |
 | sentences | `list[SentenceVerdict]` | yes |  |
 
-### EvaluationReport
+### ReportRequest
 
-Evaluator -> Orchestrator: quality numbers for a batch and the exported files.
+Orchestrator -> Evaluator, once after the last batch: score the whole run.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| batch_id | `str` | yes |  |
+| batch_ids | `list[str]` | yes | Batches that finished with an EvaluationReport |
+
+### EvaluationReport
+
+Evaluator -> Orchestrator: quality numbers for a batch (or the whole run) and the files.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| batch_id | `str` | yes | The batch, or 'run' for the report on the whole run |
 | mode | `Literal['gold', 'agreement', 'summary']` | yes |  |
-| precision | `float \| None` | no |  |
+| precision | `float \| None` | no | Final labels against gold |
 | recall | `float \| None` | no |  |
 | f1 | `float \| None` | no |  |
-| agreement_rate | `float \| None` | no |  |
+| agreement_rate | `float \| None` | no | Entity-level F1 of one annotator against the other |
+| per_annotator | `dict[str, dict[str, float]]` | no | Gold mode: precision/recall/f1 of each annotator |
 | counts | `dict[str, int]` | no |  |
 | export_paths | `list[str]` | no |  |
 
@@ -143,12 +153,15 @@ Evaluator -> Orchestrator: quality numbers for a batch and the exported files.
 
 ### Decision
 
+How the Verifier settled one region where the two annotations were compared.
+
 | Field | Type | Required | Description |
 |---|---|---|---|
-| start_word | `int` | yes |  |
-| end_word | `int` | yes |  |
+| start_word | `int` | yes | First word of the region |
+| end_word | `int` | yes | Last word of the region (inclusive) |
 | decision | `Literal['agreed', 'adjudicated', 'escalated']` | yes |  |
-| rationale | `str` | yes |  |
+| kept | `Literal['mbert', 'llm', 'both', 'neither']` | yes | Whose labels the final annotation keeps for this region |
+| rationale | `str` | yes | Why: 'both annotators agree', a rule, or the LLM's reason |
 
 ### SentenceVerdict
 

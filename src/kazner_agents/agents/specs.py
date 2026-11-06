@@ -17,7 +17,7 @@ COLLECTOR = AgentSpec(
     role="Fetch text, split into sentences and words, record provenance",
     inputs="CollectRequest",
     outputs="DocumentBatch (one per batch)",
-    tools=("Wikipedia API", "file reader", "sentence/word splitter"),
+    tools=("Wikipedia API", "file reader", "KazNERD reader", "sentence/word splitter"),
     done_when="All requested sentences emitted with source URL and licence",
     stage="A2",
 )
@@ -65,9 +65,9 @@ VERIFIER = AgentSpec(
 EVALUATOR = AgentSpec(
     name="Evaluator",
     role="Score against gold when available; otherwise report agreement or a summary; export",
-    inputs="VerificationResult (+ gold); in A2 NormalizedAnnotation",
+    inputs="VerificationResult (one annotator: NormalizedAnnotation); ReportRequest",
     outputs="EvaluationReport, exported files",
-    tools=("state store", "file exporter", "kazner evaluator (A4)"),
+    tools=("state store", "file exporter", "seqeval scorer (as in kazner)"),
     done_when="Report and exports written",
     stage="A2",
 )

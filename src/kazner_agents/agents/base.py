@@ -18,7 +18,7 @@ class AgentSpec:
     outputs: str
     tools: tuple[str, ...]
     done_when: str
-    stage: str  # "A2" = implemented now, "A4" = planned for Assignment 4
+    stage: str  # the assignment in which the agent was built: "A2" or "A4"
 
 
 class Agent:

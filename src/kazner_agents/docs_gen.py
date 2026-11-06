@@ -25,8 +25,8 @@ def agents_markdown() -> str:
     lines = [
         "# Agents",
         "",
-        "Six agents plus the orchestrator (DESIGN.md section 4). Stage A2 = implemented now,",
-        "A4 = planned for Assignment 4. Every agent has at most 5 tools.",
+        "Six agents plus the orchestrator (DESIGN.md sections 4 and 11). Stage = the assignment in",
+        "which the agent was built. Every agent has at most 5 tools.",
         "",
         "| Agent | Stage | Role | Input | Output | Tools | Done when |",
         "|---|---|---|---|---|---|---|",

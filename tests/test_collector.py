@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from kazner_agents.agents.collector import Collector
@@ -80,7 +82,8 @@ def test_collector_reads_a_file(ctx, tmp_path):
 def test_collector_errors_are_readable(ctx, tmp_path):
     with pytest.raises(AgentError, match="cannot read file"):
         Collector().handle(CollectRequest(source="file", path=str(tmp_path / "none.txt")), ctx)
-    with pytest.raises(AgentError, match="Assignment 4"):
+    ctx.settings.kaznerd_dir = tmp_path / "nowhere"
+    with pytest.raises(AgentError, match="KNA_KAZNERD_DIR"):
         Collector().handle(CollectRequest(source="kaznerd_test"), ctx)
 
 
@@ -136,3 +139,24 @@ def test_dots_inside_quotes_and_brackets_do_not_end_a_sentence():
 
 def test_unclosed_bracket_does_not_block_splitting():
     assert len(split_sentences("Ол (кейін келді. Біз күттік.")) == 2
+
+
+FIXTURES = Path(__file__).resolve().parents[1] / "scenarios" / "fixtures"
+
+
+def test_kaznerd_sample_is_deterministic_and_carries_gold(ctx):
+    ctx.settings.kaznerd_dir = FIXTURES / "kaznerd"
+    request = CollectRequest(source="kaznerd_test", max_sentences=5, batch_size=2, seed=7)
+    first = Collector().handle(request, ctx)
+    again = Collector().handle(request, ctx)
+    assert [s.sentence_id for b in first for s in b.sentences] == [
+        s.sentence_id for b in again for s in b.sentences
+    ]
+    assert [len(b.sentences) for b in first] == [2, 2, 1]
+    sentence = first[0].sentences[0]
+    assert sentence.gold_labels is not None and len(sentence.gold_labels) == len(sentence.words)
+    assert first[0].licence == "CC BY 4.0" and "IS2AI/KazNERD" in first[0].source_url
+    other = Collector().handle(request.model_copy(update={"seed": 8}), ctx)
+    assert [s.sentence_id for b in other for s in b.sentences] != [
+        s.sentence_id for b in first for s in b.sentences
+    ]
