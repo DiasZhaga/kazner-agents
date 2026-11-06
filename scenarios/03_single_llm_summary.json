@@ -1,0 +1,22 @@
+{
+  "name": "03_single_llm_summary",
+  "description": "A local file with the LLM only (the Assignment 2 pipeline): no Verifier, summary mode.",
+  "task": {
+    "source": "file",
+    "path": "fixtures/abai.txt",
+    "max_sentences": 6,
+    "batch_size": 3
+  },
+  "annotators": [
+    "llm"
+  ],
+  "expect": {
+    "status": "completed",
+    "mode": "summary",
+    "agents_without_messages": [
+      "Verifier",
+      "PreAnnotator"
+    ],
+    "max_agent_share": 0.4
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "10_step_limit",
+  "description": "The step limit is lower than the run needs: the run stops, the current batch fails and the rest are skipped.",
+  "task": {
+    "source": "kaznerd_test",
+    "max_sentences": 12,
+    "batch_size": 4,
+    "seed": 13
+  },
+  "settings": {
+    "kaznerd_dir": "fixtures/kaznerd",
+    "max_steps": 12
+  },
+  "expect": {
+    "status": "stopped",
+    "reason_contains": "step limit",
+    "batches": {
+      "b001": "done",
+      "b002": "failed",
+      "b003": "skipped"
+    }
+  }
+}

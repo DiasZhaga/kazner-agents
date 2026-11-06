@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from kazner_agents.errors import AgentError
-from kazner_agents.messages import CollectRequest, DocumentBatch, Envelope
+from kazner_agents.messages import CollectRequest, DocumentBatch, Envelope, Message
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (
@@ -38,6 +38,19 @@ CREATE TABLE IF NOT EXISTS messages (
     recipient TEXT NOT NULL,
     type TEXT NOT NULL,
     envelope_json TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS review_queue (
+    run_id TEXT NOT NULL,
+    batch_id TEXT NOT NULL,
+    sentence_id TEXT NOT NULL,
+    start_word INTEGER NOT NULL,
+    end_word INTEGER NOT NULL,
+    words TEXT NOT NULL,
+    mbert TEXT NOT NULL,
+    llm TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'open',
+    created_at TEXT NOT NULL
 );
 """
 
@@ -92,6 +105,21 @@ class StateStore:
             ),
         )
 
+    def add_review_items(self, run_id: str, batch_id: str, items: list[dict]) -> int:
+        """The human-review queue: regions the Verifier could not settle."""
+        with self.conn:
+            for item in items:
+                self.conn.execute(
+                    "INSERT INTO review_queue (run_id, batch_id, sentence_id, start_word, end_word,"
+                    " words, mbert, llm, reason, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        run_id, batch_id, item["sentence_id"], item["start_word"],
+                        item["end_word"], item["words"], item["mbert"], item["llm"],
+                        item["reason"], _now(),
+                    ),
+                )
+        return len(items)
+
     # --- reads -----------------------------------------------------------------------------
 
     def get_run(self, run_id: str) -> dict | None:
@@ -108,13 +136,34 @@ class StateStore:
         row = self.conn.execute("SELECT COUNT(*) FROM messages WHERE run_id = ?", (run_id,))
         return row.fetchone()[0]
 
+    def get_review_items(self, run_id: str) -> list[dict]:
+        rows = self.conn.execute(
+            "SELECT * FROM review_queue WHERE run_id = ? ORDER BY batch_id, sentence_id, start_word",
+            (run_id,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+    def load_payloads(self, run_id: str, batch_id: str, type_name: str) -> list[Message]:
+        """Every payload of one type delivered for a batch, in delivery order.
+
+        A payload that went to two recipients (a DocumentBatch to both annotators) is stored
+        once per delivery, so only the first copy of each message content is returned.
+        """
+        rows = self.conn.execute(
+            "SELECT envelope_json FROM messages WHERE run_id = ? AND batch_id = ? AND type = ?"
+            " ORDER BY step",
+            (run_id, batch_id, type_name),
+        ).fetchall()
+        payloads: list[Message] = []
+        for row in rows:
+            payload = Envelope.model_validate_json(row["envelope_json"]).payload
+            if payload not in payloads:
+                payloads.append(payload)
+        return payloads
+
     def load_document_batch(self, run_id: str, batch_id: str) -> DocumentBatch:
         """The DocumentBatch of a batch, as the Collector sent it (words and provenance)."""
-        row = self.conn.execute(
-            "SELECT envelope_json FROM messages WHERE run_id = ? AND batch_id = ?"
-            " AND type = 'DocumentBatch' ORDER BY step LIMIT 1",
-            (run_id, batch_id),
-        ).fetchone()
-        if row is None:
+        found = self.load_payloads(run_id, batch_id, "DocumentBatch")
+        if not found:
             raise AgentError(f"no DocumentBatch stored for batch {batch_id}")
-        return Envelope.model_validate_json(row["envelope_json"]).payload
+        return found[0]

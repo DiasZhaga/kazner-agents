@@ -9,11 +9,13 @@ pydantic v2 and reject unknown fields.
 
 | Payload | Recipient |
 |---|---|
-| CollectRequest | Collector |
-| DocumentBatch | LLMAnnotator |
-| Annotation | BoundaryNormalizer |
-| NormalizedAnnotation | Evaluator |
-| EvaluationReport | Orchestrator |
+| CollectRequest | ['Collector'] |
+| DocumentBatch | ['PreAnnotator', 'LLMAnnotator'] |
+| Annotation | ['BoundaryNormalizer'] |
+| NormalizedAnnotation | ['Verifier'] |
+| VerificationResult | ['Evaluator'] |
+| ReportRequest | ['Evaluator'] |
+| EvaluationReport | ['Orchestrator'] |
 
 ## Envelope
 

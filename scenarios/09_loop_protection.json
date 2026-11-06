@@ -1,0 +1,24 @@
+{
+  "name": "09_loop_protection",
+  "description": "A broken annotator sends the batch back to itself: the third identical delivery is rejected and the batch fails with LoopDetected.",
+  "task": {
+    "source": "kaznerd_test",
+    "max_sentences": 4,
+    "batch_size": 4,
+    "seed": 1
+  },
+  "annotators": [
+    "llm"
+  ],
+  "settings": {
+    "kaznerd_dir": "fixtures/kaznerd"
+  },
+  "fakes": {
+    "looping_annotator": true
+  },
+  "expect": {
+    "status": "completed_with_failures",
+    "batch_error_contains": "LoopDetected",
+    "rejected_messages_at_least": 1
+  }
+}

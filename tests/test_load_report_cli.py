@@ -39,7 +39,7 @@ def test_cli_run_and_load_report_offline(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("KNA_HOME", str(tmp_path))
     text_file = tmp_path / "text.txt"
     text_file.write_text("Абай Семейде оқыды. Ол 1845 жылы туған. Абай ақын болды.", encoding="utf-8")
-    code = main(["run", "--source", "file", "--path", str(text_file), "--batch-size", "2", "--llm", "fake"])
+    code = main(["run", "--source", "file", "--path", str(text_file), "--batch-size", "2", "--llm", "fake", "--tagger", "fake"])
     out = capsys.readouterr().out
     assert code == 0, out
     assert ": completed" in out and "OK: no agent over the limit" in out
@@ -52,6 +52,7 @@ def test_cli_reports_bad_arguments(tmp_path, monkeypatch, capsys):
     assert "needs a title" in capsys.readouterr().err
     monkeypatch.setenv("OPENAI_API_KEY", "")
     assert main(["run", "--source", "wikipedia", "--title", "Абай", "--llm", "openai"]) == 2
+    assert "KNA_MBERT_PATH" in capsys.readouterr().err  # no checkpoint in this home folder
 
 
 def test_generated_docs_are_up_to_date():

@@ -1,0 +1,20 @@
+{
+  "name": "06_llm_retries_recover",
+  "description": "The LLM fails twice with a temporary error: the client retries with backoff and the run completes; the log shows 3 attempts.",
+  "task": {
+    "source": "kaznerd_test",
+    "max_sentences": 4,
+    "batch_size": 4,
+    "seed": 1
+  },
+  "settings": {
+    "kaznerd_dir": "fixtures/kaznerd"
+  },
+  "fakes": {
+    "llm_fail_times": 2
+  },
+  "expect": {
+    "status": "completed",
+    "llm_attempts_in_one_call": 3
+  }
+}

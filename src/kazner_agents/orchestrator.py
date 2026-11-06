@@ -1,8 +1,11 @@
 """Orchestrator: plans the batches, routes every message, stores state and enforces limits.
 
 It does no domain work itself. Each agent returns payloads; the orchestrator wraps each payload
-in an Envelope, finds the recipient in ROUTES, checks the limits and the loop protection, saves
-and logs the message, and delivers it.
+in an Envelope, finds the recipients in the routing table, checks the limits and the loop
+protection, saves and logs the message, and delivers it.
+
+The plan of a run says which annotators work (mBERT, the LLM, or both); the routing table is
+built from that plan (DESIGN.md section 11).
 """
 
 from __future__ import annotations
@@ -10,6 +13,7 @@ from __future__ import annotations
 import secrets
 import time
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -19,25 +23,43 @@ from kazner_agents.agents.collector import Collector
 from kazner_agents.agents.evaluator import Evaluator
 from kazner_agents.agents.llm_annotator import LLMAnnotator
 from kazner_agents.agents.normalizer import BoundaryNormalizer
+from kazner_agents.agents.pre_annotator import PreAnnotator, Tagger, load_mbert
 from kazner_agents.agents.specs import ORCHESTRATOR
+from kazner_agents.agents.verifier import Verifier
 from kazner_agents.config import Settings
 from kazner_agents.context import RunContext
 from kazner_agents.errors import AgentError, KnaError, LimitExceeded, LoopDetected
 from kazner_agents.llm import LLMBackend, LLMClient
-from kazner_agents.messages import CollectRequest, Envelope, EvaluationReport, Message
+from kazner_agents.messages import (
+    CollectRequest,
+    Envelope,
+    EvaluationReport,
+    Message,
+    ReportRequest,
+)
 from kazner_agents.run_log import RunLogger
 from kazner_agents.state import StateStore
 
 NAME = ORCHESTRATOR.name
+ANNOTATOR_AGENTS = {"mbert": "PreAnnotator", "llm": "LLMAnnotator"}
+DEFAULT_ANNOTATORS = ("mbert", "llm")
 
-# Which agent receives which payload type (DESIGN.md section 5).
-ROUTES = {
-    "CollectRequest": "Collector",
-    "DocumentBatch": "LLMAnnotator",
-    "Annotation": "BoundaryNormalizer",
-    "NormalizedAnnotation": "Evaluator",
-    "EvaluationReport": NAME,
-}
+
+def build_routes(annotators: tuple[str, ...]) -> dict[str, list[str]]:
+    """Which agents receive which payload type, for a run with these annotators."""
+    two_annotators = len(annotators) == 2
+    return {
+        "CollectRequest": ["Collector"],
+        "DocumentBatch": [ANNOTATOR_AGENTS[a] for a in annotators],
+        "Annotation": ["BoundaryNormalizer"],
+        "NormalizedAnnotation": ["Verifier" if two_annotators else "Evaluator"],
+        "VerificationResult": ["Evaluator"],
+        "ReportRequest": ["Evaluator"],
+        "EvaluationReport": [NAME],
+    }
+
+
+ROUTES = build_routes(DEFAULT_ANNOTATORS)  # the default plan, shown in docs/messages.md
 
 # The same (batch, type, sender, recipient) may be delivered at most this many times.
 MAX_REPEATS = 2
@@ -50,7 +72,9 @@ class RunSummary:
     reason: str | None
     batches: dict[str, str] = field(default_factory=dict)  # batch_id -> done/failed/skipped
     batch_errors: dict[str, str] = field(default_factory=dict)
-    reports: list[EvaluationReport] = field(default_factory=list)
+    reports: list[EvaluationReport] = field(default_factory=list)  # one per finished batch
+    run_report: EvaluationReport | None = None  # the Evaluator's report on the whole run
+    annotators: tuple[str, ...] = DEFAULT_ANNOTATORS
     steps: int = 0
     llm_calls: int = 0
     input_tokens: int = 0
@@ -63,9 +87,18 @@ class Orchestrator:
     spec = ORCHESTRATOR
     name = NAME
 
-    def __init__(self, ctx: RunContext, agents: dict[str, Agent]):
+    def __init__(
+        self,
+        ctx: RunContext,
+        agents: dict[str, Agent],
+        annotators: tuple[str, ...] = DEFAULT_ANNOTATORS,
+    ):
+        if not annotators or any(a not in ANNOTATOR_AGENTS for a in annotators):
+            raise AgentError(f"unknown annotators {annotators}; choose from {list(ANNOTATOR_AGENTS)}")
         self.ctx = ctx
         self.agents = agents
+        self.annotators = annotators
+        self.routes = build_routes(annotators)
         self.step = 0
         self.repeats: Counter[tuple] = Counter()
         self.reports: list[EvaluationReport] = []
@@ -77,10 +110,10 @@ class Orchestrator:
     def run(self, task: CollectRequest) -> RunSummary:
         ctx = self.ctx
         ctx.call_tool(self.name, "state_create_run", ctx.state.create_run, ctx.run_id, task)
-        summary = RunSummary(ctx.run_id, "completed", None)
+        summary = RunSummary(ctx.run_id, "completed", None, annotators=self.annotators)
 
         try:
-            document_batches = self.deliver(self.name, task)
+            document_batches = self.deliver(self.name, "Collector", task)
         except KnaError as exc:
             # Without text there is nothing to annotate: the run fails with a readable reason.
             return self.finish(summary, "failed", f"collecting text failed: {exc}")
@@ -105,6 +138,15 @@ class Orchestrator:
                 self.name, "state_batch_status", ctx.state.set_batch_status,
                 ctx.run_id, batch.batch_id, status, reason,
             )
+        summary.reports = list(self.reports)
+
+        done = [batch_id for batch_id, status in summary.batches.items() if status == "done"]
+        if done and not stop_reason:
+            try:  # one more round: the Evaluator reports on the whole run
+                self.process_batch(sender=self.name, first_payload=ReportRequest(batch_ids=done))
+                summary.run_report = self.reports[-1]
+            except KnaError as exc:
+                summary.batch_errors["run-report"] = f"{type(exc).__name__}: {exc}"
 
         if stop_reason:
             return self.finish(summary, "stopped", stop_reason)
@@ -113,13 +155,16 @@ class Orchestrator:
         return self.finish(summary, "completed", None)
 
     def process_batch(self, sender: str, first_payload: Message) -> None:
-        """Route messages for one batch until the EvaluationReport comes back."""
+        """Route messages until nothing is left to deliver (the EvaluationReport comes back)."""
         queue = [(sender, first_payload)]
         while queue:
             sender, payload = queue.pop(0)
-            recipient = ROUTES[type(payload).__name__]
-            for output in self.deliver(sender, payload):
-                queue.append((recipient, output))
+            recipients = self.routes.get(type(payload).__name__)
+            if recipients is None:
+                raise AgentError(f"no route for message type {type(payload).__name__}")
+            for recipient in recipients:  # a DocumentBatch goes to every planned annotator
+                for output in self.deliver(sender, recipient, payload):
+                    queue.append((recipient, output))
 
     def finish(self, summary: RunSummary, status: str, reason: str | None) -> RunSummary:
         ctx = self.ctx
@@ -127,7 +172,6 @@ class Orchestrator:
             self.name, "state_finish_run", ctx.state.finish_run, ctx.run_id, status, reason
         )
         summary.status, summary.reason = status, reason
-        summary.reports = self.reports
         summary.steps = self.step
         summary.llm_calls = ctx.llm.calls_made
         summary.input_tokens = ctx.llm.input_tokens
@@ -145,13 +189,10 @@ class Orchestrator:
         if time.monotonic() > self.deadline:
             raise LimitExceeded(f"time limit reached ({settings.max_seconds:g} s per run)")
 
-    def deliver(self, sender: str, payload: Message) -> list[Message]:
+    def deliver(self, sender: str, recipient: str, payload: Message) -> list[Message]:
         """One step: wrap, check, save, log and hand the payload to its recipient."""
         ctx = self.ctx
         type_name = type(payload).__name__
-        recipient = ROUTES.get(type_name)
-        if recipient is None:
-            raise AgentError(f"no route for message type {type_name}")
         batch_id = getattr(payload, "batch_id", None)
 
         self.check_limits()
@@ -178,7 +219,7 @@ class Orchestrator:
         start = time.perf_counter()
         status, error = "error", None
         try:
-            if recipient == self.name:  # an EvaluationReport: this batch is finished
+            if recipient == self.name:  # an EvaluationReport: this batch (or the run) is finished
                 self.reports.append(payload)
                 outputs = []
             else:
@@ -206,8 +247,12 @@ def new_run_id() -> str:
     return datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + secrets.token_hex(2)
 
 
-def default_agents() -> dict[str, Agent]:
-    agents = [Collector(), LLMAnnotator(), BoundaryNormalizer(), Evaluator()]
+def default_agents(make_tagger: Callable[[Settings], Tagger] = load_mbert) -> dict[str, Agent]:
+    """New agent objects for one run (agents keep per-run state, e.g. the loaded model)."""
+    agents = [
+        Collector(), PreAnnotator(make_tagger), LLMAnnotator(), BoundaryNormalizer(),
+        Verifier(), Evaluator(),
+    ]
     return {agent.name: agent for agent in agents}
 
 
@@ -217,6 +262,8 @@ def run_pipeline(
     backend: LLMBackend,
     agents: dict[str, Agent] | None = None,
     run_id: str | None = None,
+    annotators: tuple[str, ...] = DEFAULT_ANNOTATORS,
+    make_tagger: Callable[[Settings], Tagger] = load_mbert,
 ) -> RunSummary:
     """Create the run context, run the orchestrator, and close the state store."""
     run_id = run_id or new_run_id()
@@ -231,6 +278,7 @@ def run_pipeline(
     state = StateStore(settings.state_path)
     ctx = RunContext(run_id, settings, logger, llm, state, settings.outputs_dir / run_id)
     try:
-        return Orchestrator(ctx, agents or default_agents()).run(task)
+        orchestrator = Orchestrator(ctx, agents or default_agents(make_tagger), annotators)
+        return orchestrator.run(task)
     finally:
         state.close()

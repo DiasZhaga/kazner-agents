@@ -1,0 +1,38 @@
+{
+  "name": "01_gold_two_annotators",
+  "description": "KazNERD-format gold sample, mBERT and LLM, Verifier settles disagreements: gold scores for the final labels and for each annotator.",
+  "task": {
+    "source": "kaznerd_test",
+    "max_sentences": 13,
+    "batch_size": 5,
+    "seed": 13
+  },
+  "annotators": [
+    "mbert",
+    "llm"
+  ],
+  "settings": {
+    "kaznerd_dir": "fixtures/kaznerd"
+  },
+  "expect": {
+    "status": "completed",
+    "batches": {
+      "b001": "done",
+      "b002": "done",
+      "b003": "done"
+    },
+    "mode": "gold",
+    "annotators_scored": [
+      "llm",
+      "mbert"
+    ],
+    "final_f1_at_least": 0.0,
+    "decisions_at_least": {
+      "agreed": 1,
+      "adjudicated": 1,
+      "escalated": 1
+    },
+    "review_items_at_least": 1,
+    "max_agent_share": 0.4
+  }
+}

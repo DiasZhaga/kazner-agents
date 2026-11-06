@@ -13,10 +13,13 @@ dependencies = [
     "openai>=2.0",
     "requests>=2.31",
     "python-dotenv>=1.0",
+    "seqeval==1.2.2",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+# The PreAnnotator's real model; same transformers version as the pilot that trained it.
+mbert = ["torch>=2.5,<3", "transformers==5.0.0"]
 
 [project.scripts]
 kna = "kazner_agents.cli:main"

@@ -1,0 +1,20 @@
+{
+  "name": "02_agreement_wikipedia",
+  "description": "A Wikipedia article (fake API serving a fixture text), two annotators, no gold: the run reports how much mBERT and the LLM agree.",
+  "task": {
+    "source": "wikipedia",
+    "title": "Абай Құнанбайұлы",
+    "max_sentences": 6,
+    "batch_size": 3
+  },
+  "annotators": [
+    "mbert",
+    "llm"
+  ],
+  "expect": {
+    "status": "completed",
+    "mode": "agreement",
+    "agreement_reported": true,
+    "max_agent_share": 0.4
+  }
+}

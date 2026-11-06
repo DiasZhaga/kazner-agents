@@ -23,17 +23,20 @@ def file_task(tmp_path, batch_size=3, max_sentences=20):
     return CollectRequest(source="file", path=str(path), batch_size=batch_size, max_sentences=max_sentences)
 
 
-def run(tmp_path, task=None, backend=None, agents=None, **limits):
+def run(tmp_path, task=None, backend=None, agents=None, annotators=("llm",), **limits):
     settings = dataclasses.replace(make_settings(tmp_path), **limits)
     backend = backend or FakeLLM(fake_annotation_responder)
-    return run_pipeline(settings, task or file_task(tmp_path), backend, agents=agents, run_id="r1")
+    return run_pipeline(
+        settings, task or file_task(tmp_path), backend, agents=agents, run_id="r1", annotators=annotators
+    )
 
 
 def test_end_to_end_run_with_fake_llm(tmp_path):
     summary = run(tmp_path)
     assert summary.status == "completed", summary.batch_errors
     assert summary.batches == {"b001": "done", "b002": "done", "b003": "done"}
-    assert summary.steps == 1 + 4 * 3  # CollectRequest + 4 messages per batch
+    # CollectRequest + 4 messages per batch + ReportRequest and the run report
+    assert summary.steps == 1 + 4 * 3 + 2
     assert summary.llm_calls == 3 and summary.input_tokens > 0
 
     iob2 = (summary.output_dir / "annotations.iob2").read_text(encoding="utf-8")
@@ -54,7 +57,7 @@ def test_end_to_end_run_with_fake_llm(tmp_path):
     state = StateStore(tmp_path / "state" / "kna.sqlite3")
     assert state.get_run("r1")["status"] == "completed"
     assert [b["status"] for b in state.get_batches("r1")] == ["done"] * 3
-    assert state.count_messages("r1") == 13
+    assert state.count_messages("r1") == 15
     state.close()
 
 

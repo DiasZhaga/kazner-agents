@@ -1,0 +1,27 @@
+{
+  "name": "04_gold_mbert_only",
+  "description": "Gold sample with the mBERT annotator only: gold scores for mBERT, no LLM calls needed.",
+  "task": {
+    "source": "kaznerd_test",
+    "max_sentences": 8,
+    "batch_size": 4,
+    "seed": 3
+  },
+  "annotators": [
+    "mbert"
+  ],
+  "settings": {
+    "kaznerd_dir": "fixtures/kaznerd"
+  },
+  "expect": {
+    "status": "completed",
+    "mode": "gold",
+    "annotators_scored": [
+      "mbert"
+    ],
+    "agents_without_messages": [
+      "Verifier",
+      "LLMAnnotator"
+    ]
+  }
+}
